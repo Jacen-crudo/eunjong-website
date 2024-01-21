@@ -13,13 +13,15 @@ router.post('/users', async (req, res) => {
     try {
         await user.save()
         const token = await user.generateAuthToken()
-        res.status(201)
+        res
+            .status(201)
             .send({
                 message: 'User created!',
                 data: { user, token }
             })
     } catch (e) {
-        res.status(400)
+        res
+            .status(400)
             .send({
                 message: 'Error creating User!',
                 error: e
@@ -81,7 +83,8 @@ router.post('/users/me/avatar', auth, upload.single('avatar'), async (req, res) 
     await req.user.save()
     res.send()
 }, (error, req, res, next) => {
-    res.status(400)
+    res
+        .status(400)
         .send({
             message: 'Could not upload Avatar!',
             error: error.message
@@ -115,9 +118,9 @@ router.patch('/users/me', auth, async (req, res) => {
     const isValidOp = updates.every((update) => allowedUpdates.includes(update))
 
     if (!isValidOp) {
-        return res.status(400)
+        return res
+            .status(400)
             .send({
-                status: 'ERROR',
                 error: 'Invalid Updates!',
                 message: 'Allowed Updates: ' + allowedUpdates
             })
@@ -133,9 +136,10 @@ router.patch('/users/me', auth, async (req, res) => {
             })
 
     } catch (e) {
-        res.status(400)
+        res
+            .status(400)
             .send({
-                status: 'ERROR',
+                message: 'ERROR',
                 error: e
             })
     }
