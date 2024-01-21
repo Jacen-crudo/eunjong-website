@@ -7,7 +7,7 @@ const router = new express.Router()
 
 // POST ROUTES
 
-router.post('/menu', auth, async (req, res) => {
+router.post('/API/menu', auth, async (req, res) => {
     const menu = new Menu(req.body)
 
     try {
@@ -28,7 +28,7 @@ router.post('/menu', auth, async (req, res) => {
     }
 })
 
-router.post('/menu/:id/img', auth, upload.single('menu-item'), async (req, res) => {
+router.post('/API/menu/:id/img', auth, upload.single('menu-item'), async (req, res) => {
     try {
         const buffer = await sharp(req.file.buffer).resize({ width: 250, height: 250 }).png().toBuffer()
         const menu = await Menu.findById(req.params.id)
@@ -38,35 +38,40 @@ router.post('/menu/:id/img', auth, upload.single('menu-item'), async (req, res) 
         menu.image = buffer
         await menu.save()
         res.send()
-    } catch (e) {
-        res
-            .status(400)
-            .send({
-                message: 'Could not add Menu image!',
-                error: e.message
-            })
-    }
+    } catch (e) { res.status(500).send() }
+}, (error, req, res, next) => {
+    res
+        .status(400)
+        .send({
+            message: 'Could not add Menu image!',
+            error: error.message
+        })
 })
 
 // GET ROUTES
 
-router.get('/menu', async (req, res) => {
+router.get('/API/menu', async (req, res) => {
     const reqOptions = Object.keys(req.query)
+    const reqFields = ['-_id', 'name', 'description', 'image', 'alt', 'flags']
+    const reqSort = !req.query.sort ? ['-display'] : req.query.sort.split(' ')
     const allowedOptions = ['limit', 'skip', 'sort']
-    const isValidOp = reqOptions.every((option) => allowedOptions.includes(option))
+    const allowedSort = ['name', 'description', 'display']
+    var isValidOp = reqOptions.every((option) => allowedOptions.includes(option))
+    isValidOp = reqSort.every((sort) => allowedSort.includes(sort.replace('-', '')))
     
     if(!isValidOp) {
         return res
             .status(400)
             .send({
                 error: 'Invalid search!',
-                message: 'Allowed search options: ' + allowedOptions
+                message: {
+                    options: 'Allowed Options: ' + allowedOptions,
+                    sort: 'Allowed Sort: ' + allowedSort
+                }
             })
     }
 
     try {
-        const reqFields = ['-_id', 'name', 'description', 'image', 'alt', 'flags']
-        const reqSort = !req.query.sort ? ['-display'] : req.query.sort.split(' ')
         const data = await Menu
             .find({ flags: { $ne: 'disabled' } })
             .limit(req.query.limit)
@@ -85,7 +90,7 @@ router.get('/menu', async (req, res) => {
     }
 })
 
-router.get('/menu/:id', auth, async (req, res) => {
+router.get('/API/menu/:id', auth, async (req, res) => {
     try {
         const menu = await Menu.findById(req.params.id)
 
@@ -100,13 +105,13 @@ router.get('/menu/:id', auth, async (req, res) => {
     }
 })
 
-router.get('/menu/:id/img', async (req, res) => {
+router.get('/API/menu/:id/img', async (req, res) => {
     try {
         const menu = await Menu.findById(req.params.id)
 
         if(!menu) return res.status(404).send()
 
-        res.set('Content-Type', 'image/png')
+        res.type('png')
         res.send(menu.image)
     } catch (e) {
         res.status(500).send()
@@ -115,7 +120,7 @@ router.get('/menu/:id/img', async (req, res) => {
 
 // PATCH ROUTES
 
-router.patch('/menu/:id', auth, async (req, res) => {
+router.patch('/API/menu/:id', auth, async (req, res) => {
     const updates = Object.keys(req.body)
     const allowedUpdates = ['name', 'description', 'alt', 'display', 'flags']
     const isValidOp = updates.every((update) => allowedUpdates.includes(update))
@@ -167,7 +172,7 @@ router.patch('/menu/:id', auth, async (req, res) => {
 
 // DELETE ROUTES
 
-router.delete('/menu/:id/img', auth, async (req, res) => {
+router.delete('/API/menu/:id/img', auth, async (req, res) => {
     try {
         const menu = await Menu.findById(req.params.id)
 
@@ -185,7 +190,7 @@ router.delete('/menu/:id/img', auth, async (req, res) => {
     }
 })
 
-router.delete('/menu/:id', auth, async (req, res) => {
+router.delete('/API/menu/:id', auth, async (req, res) => {
     try {
         const menu = await Menu.findById(req.params.id)
 
